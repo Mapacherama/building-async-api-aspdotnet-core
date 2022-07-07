@@ -1,3 +1,4 @@
+using AutoMapper;
 using Books.API.Contexts;
 using Books.API.Services;
 using Microsoft.AspNetCore.Builder;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 
 namespace Books.API
 {
@@ -26,7 +28,8 @@ namespace Books.API
             var connectionString = Configuration["ConnectionStrings:BooksDBConnectionString"];
             services.AddDbContext<BooksContext>(o => o.UseSqlServer(connectionString));
 
-            services.AddScoped<IBookRepository, BooksRepository>();
+            services.AddScoped<IBooksRepository, BooksRepository>();
+            services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,7 +55,7 @@ namespace Books.API
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapRazorPages();
+                endpoints.MapControllers();
             });
         }
     }
