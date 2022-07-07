@@ -30,6 +30,22 @@ namespace Books.API.Services
             return await _context.Books.Include(b => b.Author).ToListAsync();
         }
 
+        public void AddBook(Book bookToAdd)
+        {
+            if (bookToAdd == null)
+            {
+                throw new ArgumentNullException(nameof(bookToAdd));
+            }
+
+               _context.Add(bookToAdd);
+        }
+
+        public async Task<bool> SaveChangesAsync()
+        {
+            // return true if 1 or more entities were changed
+            return (await _context.SaveChangesAsync() > 0);
+        }
+
         public void Dispose()
         {
             Dispose(true);
