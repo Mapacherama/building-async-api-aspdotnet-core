@@ -33,7 +33,8 @@ namespace Books.API.Services
 
         public async Task<Book> GetBookAsync(Guid id)
         {
-            await _context.Database.ExecuteSqlRawAsync("WAITFOR DELAY '00:00:02';");
+            var pageCalculator = new Books.Legacy.ComplicatedPageCalculator();
+            var amountOfPages = pageCalculator.CalculateBookPages();
             return await _context.Books
                 .Include(b => b.Author).FirstOrDefaultAsync(b => b.Id == id);
         }
