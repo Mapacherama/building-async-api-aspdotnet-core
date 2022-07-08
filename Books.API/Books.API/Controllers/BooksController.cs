@@ -4,6 +4,7 @@ using Books.API.Models;
 using Books.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Books.API.Controllers
@@ -40,8 +41,13 @@ namespace Books.API.Controllers
             {
                 return NotFound();
             }
+            var bookCovers = await _booksRepository.GetBookCoversAsync(id);
 
-            return Ok(bookEntity);
+            //var propertyBag = new Tuple<Entities.Book, IEnumerable<ExternalModels.BookCover>>
+            //    (bookEntity, bookCovers);
+            //(Entities.Book book, IEnumerable<ExternalModels.BookCover> bookCovers)
+            //    propertyBag = (bookEntity, bookCovers);
+            return Ok((book:bookEntity, bookCovers: bookCovers));
         }
 
         [HttpPost]
