@@ -33,7 +33,7 @@ namespace Books.API.Controllers
 
         [HttpGet]
         [Route("{id}", Name = "GetBook")]
-        [BookResultFilter]
+        [BookWithCoversResultFilter]
         public async Task<IActionResult> GetBook(Guid id)
         {
             var bookEntity = await _booksRepository.GetBookAsync(id);
@@ -47,7 +47,7 @@ namespace Books.API.Controllers
             //    (bookEntity, bookCovers);
             //(Entities.Book book, IEnumerable<ExternalModels.BookCover> bookCovers)
             //    propertyBag = (bookEntity, bookCovers);
-            return Ok((book:bookEntity, bookCovers: bookCovers));
+            return Ok((bookEntity, bookCovers));
         }
 
         [HttpPost]

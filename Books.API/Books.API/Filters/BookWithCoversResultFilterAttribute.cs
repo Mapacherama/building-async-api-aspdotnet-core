@@ -3,9 +3,7 @@ using Books.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Books.API.Filters
@@ -29,7 +27,7 @@ namespace Books.API.Filters
             //var (book, bookCovers) = ((Entities.Book book, 
             //    IEnumerable<ExternalModels.BookCover> bookCovers))resultFromAction.Value;
 
-            //var temp = ((Entities.Book, 
+            //var temp = ((Entities.Book,
             //    IEnumerable<ExternalModels.BookCover>))resultFromAction.Value;
 
             var (book, bookCovers) = ((Entities.Book,

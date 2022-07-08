@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Books.API.Services
@@ -15,6 +16,7 @@ namespace Books.API.Services
     {
         private BooksContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
+        private CancellationTokenSource _cancellationTokenSource;
 
         public BooksRepository(BooksContext context,
             IHttpClientFactory httpClientFactory)
@@ -44,7 +46,7 @@ namespace Books.API.Services
                 throw new ArgumentNullException(nameof(bookToAdd));
             }
 
-               _context.Add(bookToAdd);
+            _context.Add(bookToAdd);
         }
 
         public async Task<bool> SaveChangesAsync()
@@ -91,6 +93,31 @@ namespace Books.API.Services
             return null;
         }
 
+        private async Task<BookCover> DownloadBookCoverAsync(
+            HttpClient httpClient, string bookCoverUrl,
+            CancellationToken cancellationToken)
+            {
+                throw new Exception("Cannot download book cover, " +
+                    "writer isn't finishing book fast enough.");
+
+                var response = await httpClient
+                           .GetAsync(bookCoverUrl, cancellationToken);
+
+                if (response.IsSuccessStatusCode)
+                    {
+                        var bookCover = JsonSerializer.Deserialize<BookCover>(
+                        await response.Content.ReadAsStringAsync(),
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                        });
+                       return bookCover;
+                    }
+
+                _cancellationTokenSource.Cancel();
+                return null;
+                }
+
         public IEnumerable<Book> GetBooks()
         {
             _context.Database.ExecuteSqlRaw("WAITFOR DELAY '00:00:02';");
@@ -106,7 +133,7 @@ namespace Books.API.Services
         public async Task<IEnumerable<BookCover>> GetBookCoversAsync(Guid bookId)
         {
             var httpClient = _httpClientFactory.CreateClient();
-            var bookCovers = new List<BookCover>();            
+            var bookCovers = new List<BookCover>();
 
             // create a list of fake bookcovers
             var bookCoverUrls = new[]
@@ -118,24 +145,35 @@ namespace Books.API.Services
                 $"http://localhost:52644/api/bookcovers/{bookId}-dummycover5"
             };
 
+            // create the tasks
+            var downloadBookCoverTasksQuery =
+                 from bookCoverUrl
+                 in bookCoverUrls
+                 select DownloadBookCoverAsync(httpClient, bookCoverUrl,
+                 _cancellationTokenSource.Token);
 
-            foreach (var bookCoverUrl in bookCoverUrls)
-            {
-                var response = await httpClient
-                   .GetAsync(bookCoverUrl);
+            // start the tasks
+            var downloadBookCoverTasks = downloadBookCoverTasksQuery.ToList();
 
-                if (response.IsSuccessStatusCode)
-                {
-                    bookCovers.Add(JsonSerializer.Deserialize<BookCover>(
-                        await response.Content.ReadAsStringAsync(),
-                        new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true,
-                        }));
-                }
-            }
+            return await Task.WhenAll(downloadBookCoverTasks);
 
-            return bookCovers;
+            //foreach (var bookCoverUrl in bookCoverUrls)
+            //{
+            //    var response = await httpClient
+            //       .GetAsync(bookCoverUrl);
+
+            //    if (response.IsSuccessStatusCode)
+            //    {
+            //        bookCovers.Add(JsonSerializer.Deserialize<BookCover>(
+            //            await response.Content.ReadAsStringAsync(),
+            //            new JsonSerializerOptions
+            //            {
+            //                PropertyNameCaseInsensitive = true,
+            //            }));
+            //    }
+            //}
+
+            //return bookCovers;
         }
     }
 }
