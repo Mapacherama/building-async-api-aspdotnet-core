@@ -2,6 +2,7 @@
 using Books.API.Entities;
 using Books.API.ExternalModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,14 +17,17 @@ namespace Books.API.Services
     {
         private BooksContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<BooksRepository> _logger;
         private CancellationTokenSource _cancellationTokenSource;
 
         public BooksRepository(BooksContext context,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            ILogger<BooksRepository> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _httpClientFactory = httpClientFactory ??
                 throw new ArgumentNullException(nameof(httpClientFactory));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
 
@@ -71,6 +75,12 @@ namespace Books.API.Services
                     _context = null;
                 }
 
+                if (_cancellationTokenSource != null)
+                {
+                    _cancellationTokenSource.Dispose();
+                    _cancellationTokenSource = null;
+                }
+
             }
         }
 
@@ -97,8 +107,8 @@ namespace Books.API.Services
             HttpClient httpClient, string bookCoverUrl,
             CancellationToken cancellationToken)
             {
-                throw new Exception("Cannot download book cover, " +
-                    "writer isn't finishing book fast enough.");
+                //throw new Exception("Cannot download book cover, " +
+                //    "writer isn't finishing book fast enough.");
 
                 var response = await httpClient
                            .GetAsync(bookCoverUrl, cancellationToken);
@@ -139,7 +149,8 @@ namespace Books.API.Services
             var bookCoverUrls = new[]
             {
                 $"http://localhost:52644/api/bookcovers/{bookId}-dummycover1",
-                $"http://localhost:52644/api/bookcovers/{bookId}-dummycover2?returnFault=true",
+                //$"http://localhost:52644/api/bookcovers/{bookId}-dummycover2?returnFault=true",
+                $"http://localhost:52644/api/bookcovers/{bookId}-dummycover2",
                 $"http://localhost:52644/api/bookcovers/{bookId}-dummycover3",
                 $"http://localhost:52644/api/bookcovers/{bookId}-dummycover4",
                 $"http://localhost:52644/api/bookcovers/{bookId}-dummycover5"
@@ -154,8 +165,26 @@ namespace Books.API.Services
 
             // start the tasks
             var downloadBookCoverTasks = downloadBookCoverTasksQuery.ToList();
+            
+            try
+            {
+                return await Task.WhenAll(downloadBookCoverTasks);
+            }
+            catch (OperationCanceledException operationCanceledException)
+            {
+                _logger.LogInformation($"{operationCanceledException.Message}");
+                foreach (var task in downloadBookCoverTasks)
+                {
+                    _logger.LogInformation($"Task {task.Id} has status {task.Status}");
+                }
 
-            return await Task.WhenAll(downloadBookCoverTasks);
+                return new List<BookCover>();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError($"{exception.Message}");
+                throw;
+            }
 
             //foreach (var bookCoverUrl in bookCoverUrls)
             //{
